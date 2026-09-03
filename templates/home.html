@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block bodyclass %}home{% endblock %}
+{% block content %}
+
+<section class="hero wrap">
+  <h1>Every tool you need to work with PDFs in one place</h1>
+  <p>Every tool you need to use PDFs, at your fingertips. All are 100% free and easy to use!
+     Merge, split, compress, convert, rotate, unlock and watermark PDFs with just a few clicks.</p>
+
+  <div class="chips">
+    <button class="chip active" data-cat="All">All</button>
+    {% for cat in groups.keys() %}
+      {% if cat != 'All' %}<button class="chip" data-cat="{{ cat }}">{{ cat }}</button>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="tools wrap">
+  <div class="grid">
+    {% for t in tools %}
+    <a class="tool-card" href="/tool/{{ t.id }}" data-card="{{ t.category }}">
+      <span class="ic">{{ G[t.icon] | safe }}</span>
+      <h3>{{ t.title }}</h3>
+      <p>{{ t.tagline }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="wrap split">
+  <div>
+    <span class="ic">{{ G[groups['PDF Intelligence'][0].icon] | safe if groups['PDF Intelligence'] else '' }}</span>
+  </div>
+  <div>
+    <h2>Built on a real engine — not a mockup</h2>
+    <p>PDFly runs a complete PDF engine in the browser-adjacent backend: merge, split, compress,
+       convert, OCR, encryption, redaction, watermarking, page numbering, PDF/A, translation
+       and AI-style summarization.</p>
+    <ul>
+      <li>Merge, split, rotate, crop, reorder &amp; extract pages</li>
+      <li>Office conversions: Word, PowerPoint, Excel, HTML, JPG ↔ PDF</li>
+      <li>OCR with English &amp; Bengali language support</li>
+      <li>Passwords, signatures, redaction, comparison</li>
+      <li>Clean REST API — callable from PHP, Node, Ruby, C#, Python or curl</li>
+    </ul>
+    <a class="btn btn-primary" href="/docs">Read the API docs</a>
+  </div>
+</section>
+
+<section class="wrap split" style="padding-top:0">
+  <div>
+    <h2>100% free, no account, no file uploads to the cloud</h2>
+    <p>Everything is processed on the server you run it on — your documents never leave your own
+       infrastructure. That makes PDFly perfect for intranets, offices and internal tools.</p>
+    <p><a class="btn btn-ghost" href="/api/tools">Browse the tool catalogue as JSON →</a></p>
+  </div>
+  <div>
+    <span class="ic">{{ G[groups['PDF Security'][0].icon] | safe if groups['PDF Security'] else '' }}</span>
+  </div>
+</section>
+
+{% endblock %}

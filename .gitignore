@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+pdfly_storage/
+.venv/
+venv/
+*.zip
+.env

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}API docs — PDFly{% endblock %}
+{% block content %}
+<section class="tool-page wrap">
+  <div class="page-head">
+    <h1>PDFly REST API</h1>
+    <p>One engine, every language. Use the same API from Python, PHP, Node.js, Ruby, C#/.NET, Java or curl.</p>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">1. List the tools</h3>
+    <div class="api-block">GET <span class="k">/api/tools</span>  <span class="c"># returns the full catalogue: id, title, category, accept, options</span></div>
+
+    <h3>2. Upload files</h3>
+    <div class="api-block">POST <span class="k">/api/upload</span>  <span class="c"># multipart/form-data, field name: "files" (repeatable)</span>
+<span class="c"># → { "ok": true, "job_id": "a1b2c3d4e5f6", "files": [ {"name":"a.pdf","size":1234,"ext":".pdf"} ] }</span></div>
+
+    <h3>3. Process</h3>
+    <div class="api-block">POST <span class="k">/api/process</span>  <span class="c"># application/json</span>
+{
+  <span class="s">"job_id"</span>: "a1b2c3d4e5f6",
+  <span class="s">"tool"</span>:    "merge_pdf",        <span class="c"># see /api/tools</span>
+  <span class="s">"options"</span>: { "level": "medium" }  <span class="c"># optional</span>
+}
+<span class="c"># → { "ok": true, "files": [ {"name":"merged.pdf","url":"/result/.../merged.pdf","size":123} ], "notes": [...] }</span></div>
+
+    <h3>4. Download</h3>
+    <div class="api-block">GET <span class="k">/result/&lt;job_id&gt;/&lt;filename&gt;</span>   <span class="c"># single file</span>
+GET <span class="k">/api/zip/&lt;job_id&gt;</span>                    <span class="c"># ALL result files of a job as one .zip</span>
+GET <span class="k">/api/preview/&lt;job_id&gt;/&lt;file&gt;?page=N</span> <span class="c"># JPEG page preview (thumbnails)</span>
+GET <span class="k">/api/pages/&lt;job_id&gt;/&lt;file&gt;</span>          <span class="c"># page count for the reader/annotator</span></div>
+
+    <h3>5. Reorder (drag &amp; drop order, no re-upload)</h3>
+    <div class="api-block">POST <span class="k">/api/reorder</span>  <span class="c"># application/json</span>
+{ <span class="s">"job_id"</span>: "a1b2c3d4e5f6", <span class="s">"order"</span>: [2, 0, 1] }  <span class="c"># a permutation of the file indices</span></div>
+
+    <h3>6. Status</h3>
+    <div class="api-block">GET <span class="k">/api/status/&lt;job_id&gt;</span></div>
+
+    <h2 style="font-size:24px">Examples in every language</h2>
+
+    <h3>Python</h3>
+    <div class="api-block"><span class="c"># pip install requests</span>
+import requests
+base = <span class="s">"http://localhost:5000"</span>
+with open(<span class="s">"a.pdf"</span>, <span class="s">"rb"</span>) as f1, open(<span class="s">"b.pdf"</span>, <span class="s">"rb"</span>) as f2:
+    up = requests.post(base + <span class="s">"/api/upload"</span>, files=[(<span class="s">"files"</span>, f1), (<span class="s">"files"</span>, f2)]).json()
+res = requests.post(base + <span class="s">"/api/process"</span>, json={<span class="s">"job_id"</span>: up[<span class="s">"job_id"</span>], <span class="s">"tool"</span>: <span class="s">"merge_pdf"</span>}).json()
+for f in res[<span class="s">"files"</span>]:
+    open(f[<span class="s">"name"</span>], <span class="s">"wb"</span>).write(requests.get(base + f[<span class="s">"url"</span>]).content)</div>
+
+    <h3>PHP</h3>
+    <div class="api-block">&lt;?php
+$base = <span class="s">'http://localhost:5000'</span>;
+$curl = curl_init($base . <span class="s">'/api/upload'</span>);
+curl_setopt_array($curl, [
+  CURLOPT_RETURNTRANSFER =&gt; true,
+  CURLOPT_POST =&gt; true,
+  CURLOPT_POSTFIELDS =&gt; [<span class="s">'files'</span> =&gt; new CURLFile(<span class="s">'a.pdf'</span>), <span class="s">'files'</span> =&gt; new CURLFile(<span class="s">'b.pdf'</span>)],
+]);
+$up = json_decode(curl_exec($curl), true);
+$curl2 = curl_init($base . <span class="s">'/api/process'</span>);
+curl_setopt_array($curl2, [CURLOPT_RETURNTRANSFER =&gt; true, CURLOPT_POST =&gt; true,
+  CURLOPT_HTTPHEADER =&gt; [<span class="s">'Content-Type: application/json'</span>],
+  CURLOPT_POSTFIELDS =&gt; json_encode([<span class="s">'job_id'</span> =&gt; $up[<span class="s">'job_id'</span>], <span class="s">'tool'</span> =&gt; <span class="s">'merge_pdf'</span>])]);
+$res = json_decode(curl_exec($curl2), true);
+file_put_contents($res[<span class="s">'files'</span>][0][<span class="s">'name'</span>], file_get_contents($base . $res[<span class="s">'files'</span>][0][<span class="s">'url'</span>]));</div>
+
+    <h3>Node.js</h3>
+    <div class="api-block"><span class="c">// npm i form-data node-fetch</span>
+const FormData = require(<span class="s">'form-data'</span>);
+const fs = require(<span class="s">'fs'</span>);
+const base = <span class="s">'http://localhost:5000'</span>;
+const fd = new FormData();
+fd.append(<span class="s">'files'</span>, fs.createReadStream(<span class="s">'a.pdf'</span>));
+fd.append(<span class="s">'files'</span>, fs.createReadStream(<span class="s">'b.pdf'</span>);
+fetch(base + <span class="s">'/api/upload'</span>, { method: <span class="s">'POST'</span>, body: fd })
+  .then(r =&gt; r.json()).then(async up =&gt; {
+    const res = await fetch(base + <span class="s">'/api/process'</span>, { method: <span class="s">'POST'</span>,
+      headers: { <span class="s">'Content-Type'</span>: <span class="s">'application/json'</span> },
+      body: JSON.stringify({ job_id: up.job_id, tool: <span class="s">'merge_pdf'</span> }) }).then(r =&gt; r.json());
+    for (const f of res.files) {
+      const buf = await fetch(base + f.url).then(r =&gt; r.buffer());
+      fs.writeFileSync(f.name, buf);
+    }
+  });</div>
+
+    <h3>Ruby</h3>
+    <div class="api-block"><span class="c"># gem install httparty</span>
+require <span class="s">'httparty'</span>
+base = <span class="s">'http://localhost:5000'</span>
+up = HTTParty.post(base + <span class="s">'/api/upload'</span>, body: { files: [File.open(<span class="s">'a.pdf'</span>), File.open(<span class="s">'b.pdf'</span>)] }).parsed_response
+res = HTTParty.post(base + <span class="s">'/api/process'</span>, body: { job_id: up[<span class="s">'job_id'</span>], tool: <span class="s">'merge_pdf'</span> }.to_json,
+      headers: { <span class="s">'Content-Type'</span> =&gt; <span class="s">'application/json'</span> }).parsed_response
+File.binwrite(res[<span class="s">'files'</span>][0][<span class="s">'name'</span>], HTTParty.get(base + res[<span class="s">'files'</span>][0][<span class="s">'url'</span>]).body)</div>
+
+    <h3>C# / .NET</h3>
+    <div class="api-block">var base = <span class="s">"http://localhost:5000"</span>;
+using var http = new HttpClient();
+var form = new MultipartFormDataContent();
+form.Add(new ByteArrayContent(File.ReadAllBytes(<span class="s">"a.pdf"</span>)), <span class="s">"files"</span>, <span class="s">"a.pdf"</span>);
+form.Add(new ByteArrayContent(File.ReadAllBytes(<span class="s">"b.pdf"</span>)), <span class="s">"files"</span>, <span class="s">"b.pdf"</span>);
+var up = await (await http.PostAsync(base + <span class="s">"/api/upload"</span>, form)).Content.ReadFromJsonAsync&lt;UploadResponse&gt;();
+var res = await (await http.PostAsync(base + <span class="s">"/api/process"</span>,
+  new StringContent(JsonSerializer.Serialize(new { job_id = up.job_id, tool = <span class="s">"merge_pdf"</span> }), Encoding.UTF8, <span class="s">"application/json"</span>)))
+  .Content.ReadFromJsonAsync&lt;ProcessResponse&gt;();
+File.WriteAllBytes(res.files[0].name, await http.GetByteArrayAsync(base + res.files[0].url));</div>
+
+    <h3>curl (shell)</h3>
+    <div class="api-block">BASE=<span class="s">http://localhost:5000</span>
+JOB=$(curl -s -F <span class="s">"files=@a.pdf"</span> -F <span class="s">"files=@b.pdf"</span> $BASE/api/upload | python3 -c <span class="s">"import sys,json;print(json.load(sys.stdin)['job_id'])"</span>)
+curl -s -X POST $BASE/api/process -H <span class="s">"Content-Type: application/json"</span> -d <span class="s">'{"job_id":"'</span>$JOB<span class="s">'","tool":"merge_pdf"}'</span>
+<span class="c"># then download the /result/... url from the response</span></div>
+
+    <h2 style="font-size:24px">Tool list</h2>
+    <ul style="columns:2;column-gap:40px">
+      {% for t in tools %}<li><code>{{ t.id }}</code> — {{ t.title }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

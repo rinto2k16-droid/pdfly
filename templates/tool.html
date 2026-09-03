@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% macro opt_render(o) -%}
+  <div class="opt">
+  {%- if o.type == 'radio' -%}
+    <label>{{ o.label }}</label>
+    <div class="radio-row">
+      {%- for choice in o.choices %}
+      <label>
+        <input type="radio" data-opt="{{ o.id }}" data-type="radio" name="{{ o.id }}"
+               value="{{ choice[0] }}" {% if o.default == choice[0] %}checked{% endif %}>
+        <span>{{ choice[1] }}{% if choice|length > 2 %}<span class="rdesc">{{ choice[2] }}</span>{% endif %}</span>
+      </label>
+      {%- endfor %}
+    </div>
+  {%- elif o.type == 'select' -%}
+    <label for="opt-{{ o.id }}">{{ o.label }}</label>
+    <select data-opt="{{ o.id }}" data-type="select" id="opt-{{ o.id }}">
+      {%- for choice in o.choices %}
+      <option value="{{ choice[0] }}" {% if o.default == choice[0] %}selected{% endif %}>{{ choice[1] }}</option>
+      {%- endfor %}
+    </select>
+    {% if o.hint %}<div class="hint">{{ o.hint }}</div>{% endif %}
+  {%- elif o.type in ('text', 'pages', 'password') -%}
+    <label for="opt-{{ o.id }}">{{ o.label }}</label>
+    <input type="{{ 'password' if o.type == 'password' else 'text' }}"
+           data-opt="{{ o.id }}" data-type="{{ o.type }}" id="opt-{{ o.id }}"
+           placeholder="{{ o.placeholder }}" value="{{ o.default or '' }}"{% if o.type == 'password' %} autocomplete="new-password"{% endif %}>
+    {% if o.hint %}<div class="hint">{{ o.hint }}</div>{% endif %}
+  {%- elif o.type == 'number' -%}
+    <label for="opt-{{ o.id }}">{{ o.label }}</label>
+    <div class="opt-inline">
+      <input type="number" class="num" id="opt-{{ o.id }}" data-opt="{{ o.id }}" data-type="number"
+             min="{{ o.min }}" max="{{ o.max }}" value="{{ o.default }}" data-default="{{ o.default }}">
+      {% if o.suffix %}<span class="hint">{{ o.suffix }}</span>{% endif %}
+    </div>
+    {% if o.hint %}<div class="hint">{{ o.hint }}</div>{% endif %}
+  {%- elif o.type == 'check' -%}
+    <label class="check-row">
+      <input type="checkbox" data-opt="{{ o.id }}" data-type="check" {% if o.default %}checked{% endif %}>
+      {{ o.label }}
+    </label>
+  {%- endif -%}
+  </div>
+{%- endmacro %}
+
+{% block title %}{{ t.title }} — PDFly{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb wrap"><a href="/">← All PDF tools</a></div>
+<section class="tool-page wrap">
+  <div class="page-head">
+    <span class="big-ic">{{ G[t.icon] | safe }}</span>
+    <h1>{{ t.title }}</h1>
+    <p>{{ t.tagline }}</p>
+  </div>
+
+  <div class="panel" id="workbox" data-tool="{{ t.id }}">
+    <div class="dropzone" id="dropzone"
+         data-accept="{{ t.accept }}"
+         data-multiple="{{ 'true' if t.multiple else 'false' }}"
+         data-max="{{ t.max_files }}"
+         data-min="{{ t.min_files }}"
+         data-pages="false">
+      <svg class="dz-ic" viewBox="0 0 48 48" fill="none"><path d="M24 30V10m0 0l-8 8m8-8l8 8" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 34v2a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+      <h3>Select {{ t.accept | upper }} files</h3>
+      <p>{% if t.multiple %}or drop {{ t.accept }} files here{% else %}or drop a {{ t.accept }} file here{% endif %}</p>
+      <button type="button" class="btn btn-primary" id="pickBtn" style="margin-top:10px">Choose files</button>
+      <input type="file" id="fileInput" accept="{{ t.accept }}" {% if t.multiple %}multiple{% endif %}
+             onchange="if (window.__pdflyPick) { window.__pdflyPick(this); } else { this.value=''; alert('Engine not loaded yet — refresh this page (Ctrl+F5) or check the server console.'); }">
+    </div>
+    <p class="dz-status" id="dzStatus">Loading engine v{{ BUILD }}… if this text stays, press Ctrl+F5</p>
+    <div class="dz-hint">
+      {% if t.min_files > 1 %}At least {{ t.min_files }} files required.{% endif %}
+      {% if t.multiple %}You can paste screenshots (Ctrl+V) too.{% endif %}
+      {% if t.id == 'merge_pdf' %}After uploading, drag the thumbnails to set the merge order (left = first).{% endif %}
+      {% if t.id == 'compare_pdf' %}The first card is "File A", the second is "File B".{% endif %}
+      {% if t.id == 'sign_pdf' %}Upload your PDF and signature image together.{% endif %}
+    </div>
+    {% if t.note %}<div class="tool-note">💡 {{ t.note }}</div>{% endif %}
+
+    <div class="workspace-head hidden fade" id="workspaceHead"></div>
+    <div class="file-grid hidden" id="fileGrid"></div>
+
+    {% if t.options %}
+    <div class="options" id="optionsBox">
+      <h4>Options</h4>
+      {% for o in t.options %}{{ opt_render(o) }}{% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <div class="action-bar hidden" id="actionBar">
+    <div class="wrap action-inner">
+      <span class="action-meta" id="actionMeta">Select files above to begin</span>
+      <button class="btn btn-primary btn-lg" id="goBtn">{% if t.id == 'pdf_reader' %}Open the reader{% else %}Convert / Process{% endif %}</button>
+    </div>
+  </div>
+
+  {% if t.id == 'pdf_reader' %}
+  <div class="panel hidden fade" id="readerBox">
+    <h3 style="margin:0 0 14px">📖 PDF Reader</h3>
+    <div class="reader-toolbar">
+      <button class="btn btn-ghost" id="readerPrev">← Prev</button>
+      <span id="readerNav" class="reader-nav">Page 1</span>
+      <button class="btn btn-ghost" id="readerNext">Next →</button>
+      <button class="btn btn-ghost" id="zoomOut">−</button>
+      <button class="btn btn-ghost" id="zoomIn">+</button>
+      <button class="btn btn-primary" id="readerDl">Download</button>
+    </div>
+    <div id="readerImgWrap" class="reader-img hidden">
+      <img id="readerImg" alt="PDF page">
+    </div>
+    <p class="hint">Use ← → arrow keys, zoom with + / −, or press Download.</p>
+  </div>
+  {% endif %}
+
+  {% if t.id == 'annotator_pdf' %}
+  <div class="panel hidden fade" id="annotationBox">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <h3 style="margin:0">✏️ Click on the page to place a note</h3>
+      <div>
+        <button class="btn btn-ghost" id="annoPrev">← Prev</button>
+        <span id="annoPage" class="reader-nav">Page 1</span>
+        <button class="btn btn-ghost" id="annoNext">Next →</button>
+      </div>
+    </div>
+    <div id="annoCanvasWrap" style="display:flex;justify-content:center;overflow:auto"></div>
+    <p class="hint">Type your note in the “Note text” box above, then click anywhere on the page.
+       Click a note (✕) to remove it. When you are done press “Convert / Process”.</p>
+  </div>
+  {% endif %}
+
+  {% if t.id == 'pdf_scanner' %}
+  <div class="panel hidden fade" id="scannerBox">
+    <h3 style="margin:0 0 10px">📷 Scan with your camera</h3>
+    <video id="camVideo" autoplay playsinline style="width:100%;max-width:640px;border-radius:10px;background:#111"></video>
+    <div class="act-row" style="margin-top:14px">
+      <button class="btn btn-primary" id="camStart">Start camera</button>
+      <button class="btn btn-ghost" id="camCapture" disabled>📸 Capture page</button>
+    </div>
+    <p class="hint">Put your document under the camera and press Capture. Captured pages are added
+       to the PDF automatically. (Camera works when the site is opened directly — not inside previews.)</p>
+  </div>
+  {% endif %}
+
+  {% if t.id == 'pdf_forms' %}
+  <div class="options hidden" id="fieldsHint" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px"></div>
+  {% endif %}
+
+  <div class="panel progress hidden fade" id="progress">
+    <div class="spinner"></div>
+    <p id="progressText">Working…</p>
+    <div class="bar"><div id="progressBar"></div></div>
+  </div>
+
+  <div class="panel result hidden fade" id="resultbox">
+    <svg class="done-ic" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#57B560" stroke-width="3"/><path d="M14 25l7 7 13-15" stroke="#57B560" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h2>Your files are ready!</h2>
+    <p class="sub">Everything was processed locally — nothing was uploaded to a third party.</p>
+    <div class="res-files" id="resFiles"></div>
+    <div class="notes hidden"><b>Notes</b><ul id="notes"></ul></div>
+    <a class="btn btn-ghost again-link" href="/tool/{{ t.id }}" id="againBtn">↺ Start over with new files</a>
+  </div>
+</section>
+{% endblock %}

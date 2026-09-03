@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}PDFly — Every tool you need to work with PDFs in one place{% endblock %}</title>
+<link rel="stylesheet" href="/static/css/style.css?v={{ BUILD }}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23e5322d'/><text x='50' y='72' font-size='62' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>P</text></svg>">
+</head>
+<body class="{% block bodyclass %}{% endblock %}" data-build="{{ BUILD }}" data-tool="{{ t.id if t is defined else '' }}">
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="/">
+      <span class="logo">P</span>
+      <b>PDF<em>ly</em></b>
+    </a>
+
+    {% macro col(title, ids) %}
+    <div class="mega-col">
+      <h4>{{ title }}</h4>
+      {% for tid in ids %}
+        {% set tt = tools_map.get(tid) %}
+        {% if tt %}<a href="/tool/{{ tt.id }}"><span data-icon="{{ tt.icon }}"></span>{{ tt.title }}</a>{% endif %}
+      {% endfor %}
+    </div>
+    {% endmacro %}
+
+    <nav class="nav-links">
+      <a href="/tool/merge_pdf">Merge PDF</a>
+      <a href="/tool/split_pdf">Split PDF</a>
+      <a href="/tool/compress_pdf">Compress PDF</a>
+
+      <div class="dd" id="dd-convert">
+        <button class="dd-btn" type="button">Convert PDF
+          <svg class="caret" width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </button>
+        <div class="mega-full">
+          <div class="wrap mega-grid-6" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+            {{ col('Convert to PDF', ['jpg_to_pdf','word_to_pdf','pptx_to_pdf','excel_to_pdf','html_to_pdf','txt_to_pdf','rtf_to_pdf','epub_to_pdf','zip_to_pdf','csv_to_pdf','pages_to_pdf','hwp_to_pdf','scan_to_pdf']) }}
+            {{ col('Convert from PDF', ['pdf_to_jpg','pdf_to_word','pdf_to_pptx','pdf_to_excel','pdf_to_pdfa']) }}
+            {{ col('Office to PDF', ['odt_to_pdf','ods_to_pdf','odp_to_pdf']) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="dd" id="dd-all">
+        <button class="dd-btn" type="button">All PDF tools
+          <svg class="caret" width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </button>
+        <div class="mega-full">
+          <div class="wrap mega-grid-6">
+            {{ col('Organize PDF', ['merge_pdf','split_pdf','remove_pages','extract_pages','organize_pdf','rotate_pdf','scan_to_pdf','pdf_scanner']) }}
+            {{ col('Optimize PDF', ['compress_pdf','repair_pdf','ocr_pdf']) }}
+            {{ col('Convert to PDF', ['jpg_to_pdf','word_to_pdf','pptx_to_pdf','excel_to_pdf','html_to_pdf','txt_to_pdf','rtf_to_pdf','epub_to_pdf','zip_to_pdf','csv_to_pdf','pages_to_pdf','hwp_to_pdf']) }}
+            {{ col('Convert from PDF', ['pdf_to_jpg','pdf_to_word','pdf_to_pptx','pdf_to_excel','pdf_to_pdfa','odt_to_pdf','ods_to_pdf','odp_to_pdf']) }}
+            {{ col('Edit PDF', ['edit_pdf','pdf_reader','annotator_pdf','page_numbers','watermark_pdf','crop_pdf','pdf_forms']) }}
+            {{ col('PDF Security', ['protect_pdf','unlock_pdf','sign_pdf','fill_sign_pdf','redact_pdf','flatten_pdf','request_signatures','compare_pdf']) }}
+          </div>
+          <div class="wrap mega-row">
+            {{ col('PDF Intelligence', ['ai_summarize','ai_assistant','chat_pdf','ai_questions','translate_pdf','pdf_to_markdown']) }}
+          </div>
+        </div>
+      </div>
+
+      <a href="/docs">API</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="/docs" style="padding:9px 16px;font-size:14px">Docs</a>
+    </div>
+  </div>
+</header>
+
+<main style="flex:1;display:flex;flex-direction:column">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot-top">
+    <div class="copy">© 2026 PDFly — Your free PDF editor. All tools run locally (Engine: Python).</div>
+    <div class="foot-links">
+      <a href="/docs">API docs</a>
+      <a href="/tool/merge_pdf">Merge</a>
+      <a href="/tool/compress_pdf">Compress</a>
+      <a href="/tool/pdf_to_word">PDF to Word</a>
+      <a href="/tool/protect_pdf">Protect</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/static/js/main.js?v={{ BUILD }}"></script>
+<script>
+/* inject inline SVG icons where data-icon is used (header menus etc.) */
+(function () {
+  var ICONS = {{ icons_json | safe }};
+  document.querySelectorAll("[data-icon]").forEach(function (el) {
+    var k = el.getAttribute("data-icon");
+    if (ICONS[k]) el.outerHTML = ICONS[k];
+  });
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
